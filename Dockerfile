@@ -5,7 +5,11 @@ FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime
 WORKDIR /app
 
 # Install system dependencies
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Etc/UTC
+
 RUN apt-get update && apt-get install -y \
+    tzdata \
     wget \
     ffmpeg \
     git \
@@ -19,17 +23,15 @@ RUN apt-get update && apt-get install -y \
 COPY . .
 
 # Install Python dependencies for MDM and Runpod
-RUN pip install --no-cache-dir \
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir \
     runpod \
     tqdm \
     numpy \
     scipy \
     requests \
     python-multipart \
-    httpx
-
-# Install MDM specific libs
-RUN pip install --no-cache-dir \
+    httpx \
     spacy \
     joblib \
     matplotlib \
@@ -37,15 +39,12 @@ RUN pip install --no-cache-dir \
     regex \
     gitpython \
     pytorch-lightning \
-    clip \
     chumpy \
     smplx \
     trimesh \
     pyyaml \
-    huggingface_hub
-
-# Install CLIP from source if needed (MDM often requires specific versions)
-RUN pip install git+https://github.com/openai/CLIP.git
+    huggingface_hub \
+    git+https://github.com/openai/CLIP.git
 
 # Command to run the handler
 CMD [ "python", "-u", "runpod_handler.py" ]
