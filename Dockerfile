@@ -17,21 +17,28 @@ RUN apt-get update && apt-get install -y \
     libxext6 \
     libgl1-mesa-glx \
     blender \
+    build-essential \
+    python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy local files
 COPY . .
 
-# Install Python dependencies for MDM and Runpod
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir \
+# Upgrade build tools
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+
+# Install core/runtime dependencies
+RUN pip install --no-cache-dir \
     runpod \
     tqdm \
     numpy \
     scipy \
     requests \
     python-multipart \
-    httpx \
+    httpx
+
+# Install MDM standard dependencies
+RUN pip install --no-cache-dir \
     spacy \
     joblib \
     matplotlib \
@@ -39,12 +46,17 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
     regex \
     gitpython \
     pytorch-lightning \
-    chumpy \
-    smplx \
     trimesh \
     pyyaml \
-    huggingface_hub \
-    git+https://github.com/openai/CLIP.git
+    huggingface_hub
+
+# Install MDM complex dependencies (often requires compilation/extras)
+RUN pip install --no-cache-dir \
+    chumpy \
+    smplx
+
+# Install CLIP from source
+RUN pip install --no-cache-dir git+https://github.com/openai/CLIP.git
 
 # Command to run the handler
 CMD [ "python", "-u", "runpod_handler.py" ]
