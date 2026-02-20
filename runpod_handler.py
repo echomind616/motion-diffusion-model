@@ -45,6 +45,9 @@ def handler(job):
         print("📦 Converting to FBX...")
         fbx_path = f"output_{job['id']}.fbx"
         
+        if not os.path.exists(npy_path):
+            raise FileNotFoundError(f"MDM inference failed to produce {npy_path}")
+
         conversion_cmd = [
             "blender",
             "--background",
@@ -54,21 +57,35 @@ def handler(job):
             "--output", fbx_path
         ]
         
-        subprocess.run(conversion_cmd, check=True)
-        
+        try:
+            subprocess.run(conversion_cmd, check=True)
+        except subprocess.CalledProcessError as e:
+            print(f"⚠️ FBX Conversion failed: {e}")
+            # Fallback or detailed error
+            return {
+                "status": "partial_success",
+                "message": "Motion generated but FBX conversion failed. Check Blender installation and SMPL models.",
+                "npy_path": npy_path,
+                "prompt": prompt
+            }
+
         # Step 3: Read and Return as Base64
-        # Since we don't have an S3 bucket configured yet, returning base64 
-        # allows the Modal backend to receive the file directly.
-        import base64
-        with open(fbx_path, "rb") as f:
-            fbx_data = base64.b64encode(f.read()).decode('utf-8')
-        
-        return {
-            "status": "completed",
-            "fbx_base64": fbx_data,
-            "filename": fbx_path,
-            "prompt": prompt
-        }
+        if os.path.exists(fbx_path):
+            import base64
+            with open(fbx_path, "rb") as f:
+                fbx_data = base64.b64encode(f.read()).decode('utf-8')
+            
+            return {
+                "status": "completed",
+                "fbx_base64": fbx_data,
+                "filename": fbx_path,
+                "prompt": prompt
+            }
+        else:
+            return {
+                "status": "error",
+                "message": "FBX file was not created by Blender."
+            }
 
     except Exception as e:
         print(f"❌ Error: {str(e)}")
